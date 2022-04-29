@@ -32,6 +32,19 @@ local function add_frequency(note)
 	note.frequency = 2 ^ (semitones_diff / 12) * 440
 end
 
+local note_name = {[0] = 'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'}
+
+local function midi_to_pitch(semitones)
+	-- 60 is c4
+	-- 0 is c0
+
+	local octave = semitones // 12
+	local note = semitones % 12
+
+	return note_name[note] .. octave
+end
+
 return {
-	add_frequency = add_frequency
+	add_frequency = add_frequency,
+	midi_to_pitch = midi_to_pitch
 }
