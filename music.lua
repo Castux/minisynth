@@ -41,7 +41,7 @@ local function midi_to_pitch(semitones)
 	local octave = semitones // 12
 	local note = semitones % 12
 
-	return note_name[note] .. octave
+	return note_name[note], octave
 end
 
 return {

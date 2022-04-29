@@ -2,8 +2,6 @@ package.path = package.path .. ";./LuaMidi/src/?.lua"
 local midi = require "LuaMidi"
 local music = require "music"
 
-local pp = serpent.dump
-
 local midi_ts_to_beats = 120
 
 local function convert_track(track)
@@ -17,7 +15,7 @@ local function convert_track(track)
 
 			if event.timestamp ~= 0 then
 				table.insert(notes, {
-					pitch = "r",
+					name = "r",
 					duration = event.timestamp / midi_ts_to_beats
 				})
 			end
@@ -31,8 +29,10 @@ local function convert_track(track)
 			elseif start.pitch ~= event.pitch then
 				--print("Different pitches. Polyphony?")
 			else
+				local name, octave = music.midi_to_pitch(start.pitch)
 				table.insert(notes, {
-					pitch = music.midi_to_pitch(start.pitch),
+					name = name,
+					octave = octave,
 					duration = event.timestamp / midi_ts_to_beats
 				})
 				start = nil
@@ -47,8 +47,21 @@ local function print_track(track, track_number)
 
 	io.write(track_number, ",sine: ")
 
+	local last_octave, last_duration
 	for _,note in ipairs(track) do
-		io.write(note.pitch, "/", note.duration, " ")
+		io.write(note.name)
+
+		if note.name ~= "r" and note.octave ~= last_octave then
+			io.write(note.octave)
+			last_octave = note.octave
+		end
+
+		if note.duration ~= last_duration then
+			io.write("/", note.duration)
+			last_duration = note.duration
+		end
+
+		io.write(" ")
 	end
 	io.write "\n"
 end
