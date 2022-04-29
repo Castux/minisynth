@@ -7,7 +7,7 @@ local sample_rate = 44100
 -- frequency (hertz)
 -- func: oscillator function, takes in phase phi (unit: periods)
 
-local function generate(buffer, duration, frequency, func)
+local function generate_note(buffer, duration, frequency, func)
 	for i = 1, duration * sample_rate do
 		local time = i / sample_rate
 		local phi = time * frequency
@@ -50,8 +50,7 @@ local function write_buffer(buffer)
 	end
 end
 
-local function mix_buffers(out, ...)
-	ins = {...}
+local function mix_buffers(out, ins)
 	local length = 0
 	for _, buffer in ipairs(ins) do
 		length = math.max(length, #buffer)
@@ -66,9 +65,25 @@ local function mix_buffers(out, ...)
 	end
 end
 
+local function generate(tracks)
+
+	local buffers = {}
+	for _,track in ipairs(tracks) do
+		local buffer = {}
+
+		for _,note in ipairs(track) do
+			local func = note.pitch == "r" and oscillators.silence or oscillators[note.func]
+			generate_note(buffer, 1, note.frequency, func)
+		end
+
+		table.insert(buffers, buffer)
+	end
+
+	local out = {}
+	mix_buffers(out, buffers)
+	write_buffer(out)
+end
+
 return {
-	generate = generate,
-	mix_buffers = mix_buffers,
-	write_buffer = write_buffer,
-	oscillators = oscillators
+	generate = generate
 }
