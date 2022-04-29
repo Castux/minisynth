@@ -2,6 +2,16 @@ local music = require "music"
 
 local function parse_line(str, tracks)
 
+	if str == "" then
+		return
+	end
+
+	local tempo = str:match "tempo (%d+)"
+	if tempo then
+		tracks.tempo = tonumber(tempo)
+		return
+	end
+
 	local track_number, func, notes = str:match("^(%d+),(%w+):(.*)$")
 	if not (track_number and func and notes) then
 		error("Line format expected '<track>,<func>:<notes>'")

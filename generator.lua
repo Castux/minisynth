@@ -67,13 +67,16 @@ end
 
 local function generate(tracks)
 
+	local tempo = tracks.tempo or 60
+	local seconds_per_beat = 60 / tempo
+
 	local buffers = {}
 	for _,track in ipairs(tracks) do
 		local buffer = {}
 
 		for _,note in ipairs(track) do
 			local func = note.pitch == "r" and oscillators.silence or oscillators[note.func]
-			generate_note(buffer, note.duration, note.frequency, func)
+			generate_note(buffer, note.duration * seconds_per_beat, note.frequency, func)
 		end
 
 		table.insert(buffers, buffer)
