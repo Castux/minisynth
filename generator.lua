@@ -73,7 +73,7 @@ local function generate(tracks)
 
 		for _,note in ipairs(track) do
 			local func = note.pitch == "r" and oscillators.silence or oscillators[note.func]
-			generate_note(buffer, 1, note.frequency, func)
+			generate_note(buffer, note.duration, note.frequency, func)
 		end
 
 		table.insert(buffers, buffer)

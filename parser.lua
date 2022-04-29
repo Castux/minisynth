@@ -13,13 +13,20 @@ local function parse_line(str, tracks)
 	end
 
 	local current_octave = 4
+	local current_duration = 1
 
-	for pitch, alteration, octave in notes:gmatch "([abcdefgr])([#b]?)(%d?)" do
+	for pitch, alteration, octave, duration in notes:gmatch "([abcdefgr])([#b]?)(%d?)/?(%d*)" do
 
 		current_octave = tonumber(octave) or current_octave
-		local note = {func = func, pitch = pitch, alteration = alteration, octave = current_octave}
+		current_duration = tonumber(duration) or current_duration
+		local note = {
+			func = func,
+			pitch = pitch,
+			alteration = alteration,
+			octave = current_octave,
+			duration = current_duration
+		}
 		music.add_frequency(note)
-		assert(note.frequency)
 
 		table.insert(tracks[track_number], note)
 	end
