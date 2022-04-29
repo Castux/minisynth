@@ -15,7 +15,7 @@ local function parse_line(str, tracks)
 	local current_octave = 4
 	local current_duration = 1
 
-	for pitch, alteration, octave, duration in notes:gmatch "([abcdefgr])([#b]?)(%d?)/?(%d*)" do
+	for pitch, alteration, octave, duration in notes:gmatch "([abcdefgr])([#b]?)(%d?)/?([%d%.]*)" do
 
 		current_octave = tonumber(octave) or current_octave
 		current_duration = tonumber(duration) or current_duration
