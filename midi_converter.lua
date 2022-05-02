@@ -1,69 +1,95 @@
-package.path = package.path .. ";./LuaMidi/src/?.lua"
-local midi = require "LuaMidi"
+local midi = require "MIDI"
 local music = require "music"
 
-local midi_ts_to_beats = 120
-
-local function convert_track(track)
+local function split_track_into_voices(track)
 
 	local start
 	local notes = {}
 
-	for _,event in ipairs(track.events) do
+	local voices = {}
 
-		if event.type == "note_on" then
+	for _,event in ipairs(track) do
+		if event.type == "note" then
 
-			if event.timestamp ~= 0 then
-				table.insert(notes, {
-					name = "r",
-					duration = event.timestamp / midi_ts_to_beats
-				})
-			end
+			-- insert into first silent voice
 
-			start = event
-
-		elseif event.type == "note_off" then
-
-			if not start then
-				--print("Off before on?")
-			elseif start.pitch ~= event.pitch then
-				--print("Different pitches. Polyphony?")
-			else
-				local name, octave = music.midi_to_pitch(start.pitch)
-				table.insert(notes, {
-					name = name,
-					octave = octave,
-					duration = event.timestamp / midi_ts_to_beats
-				})
-				start = nil
+			for i = 1,#voices + 1 do
+				local voice = voices[i]
+				if not voice then
+					voice = {}
+					table.insert(voices, voice)
+					table.insert(voice, event)
+					break
+				elseif voice[#voice].end_time <= event.time then
+					table.insert(voice, event)
+					break
+				end
 			end
 		end
 	end
 
-	return notes
+	return voices
 end
 
-local function print_track(track, track_number)
+local function print_voice(voice, ticks_per_beat)
 
-	io.write(track_number, ",sine: ")
-
+	local last_end_time = 0
 	local last_octave, last_duration
-	for _,note in ipairs(track) do
-		io.write(note.name)
 
-		if note.name ~= "r" and note.octave ~= last_octave then
-			io.write(note.octave)
-			last_octave = note.octave
+	for _,event in ipairs(voice) do
+
+		local name, octave = music.midi_to_pitch(event.note)
+
+		-- Insert rest?
+
+		local dtime = event.time - last_end_time
+		if dtime > 0 then
+			io.write "r"
+			if dtime ~= last_duration then
+				io.write("/", dtime / ticks_per_beat)
+				last_duration = dtime
+			end
+			io.write " "
 		end
 
-		if note.duration ~= last_duration then
-			io.write("/", note.duration)
-			last_duration = note.duration
+		io.write(name)
+
+		if octave ~= last_octave then
+			io.write(octave)
+			last_octave = octave
 		end
 
-		io.write(" ")
+		if event.duration ~= last_duration then
+			io.write("/", event.duration / ticks_per_beat)
+			last_duration = event.duration
+		end
+
+		last_end_time = event.end_time
+
+		io.write " "
 	end
+
 	io.write "\n"
+end
+
+local function correct_event(event)
+
+	event.type = event[1]
+	event.time = event[2]
+
+	if event.type == "note_on" or event.type == "note_off" then
+		event.channel = event[3]
+		event.note = event[4]
+		event.velocity = event[5]
+	elseif event.type == "note" then
+		event.duration = event[3]
+		event.channel = event[4]
+		event.note = event[5]
+		event.velocity = event[6]
+		event.end_time = event.time + event.duration
+	elseif event.type == "set_tempo" then
+		event.tempo = event[3]
+	end
 end
 
 function main()
@@ -73,13 +99,32 @@ function main()
 	end
 
 	local path = arg[1]
-
-	local tracks = midi.get_MIDI_tracks(path)
-
-	for i,track in ipairs(tracks) do
-		local tmp = convert_track(track)
-		print_track(tmp, i)
+	local file = io.open(path, "rb")
+	if not file then
+		error("Could not open " .. path)
 	end
+	local bytes = file:read "a"
+	local score = midi.midi2score(bytes)
+
+	score.ticks_per_beat = table.remove(score, 1)
+
+	local voice_index = 1
+
+	for i,track in ipairs(score) do
+		for _,event in ipairs(track) do
+			correct_event(event)
+		end
+		table.sort(track, function(a,b) return a.time < b.time end)
+
+		local voices = split_track_into_voices(track)
+
+		for _,voice in ipairs(voices) do
+			io.write(voice_index, ",sine: ")
+			print_voice(voice, score.ticks_per_beat)
+			voice_index = voice_index + 1
+		end
+	end
+
 end
 
 
