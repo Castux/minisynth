@@ -27,7 +27,7 @@ local oscillators =
 	end,
 
 	triangle = function(phi)
-		return 1 - 2 * math.abs(0.5 - (phi % 1))
+		return 1 - 4 * math.abs(0.5 - (phi % 1))
 	end,
 
 	noise = function(phi)
