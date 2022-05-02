@@ -7,7 +7,7 @@ local function create(notes)
 		notes = notes,
 		note_index = 1,
 		beat = 0,	-- beats
-		phi = 0,		-- periods
+		phi = 0,	-- periods
 		finished = false
 	}
 end
@@ -78,11 +78,11 @@ local function generate(channel, buffer, num_samples)
 	end
 end
 
-local function write_buffer(buffer)
+local function write_buffer(buffer, fp)
 	for i = 1, #buffer do
 		local tmp = math.floor(buffer[i] * max_value)
 		tmp = string.pack("i2", tmp)
-		io.write(tmp)
+		fp:write(tmp)
 	end
 end
 
