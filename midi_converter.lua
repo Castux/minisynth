@@ -31,7 +31,7 @@ local function split_track_into_voices(track)
 	return voices
 end
 
-local function print_voice(voice, ticks_per_beat)
+local function print_voice(voice, ticks_per_beat, fp)
 
 	local last_end_time = 0
 	local last_octave, last_duration
@@ -44,32 +44,32 @@ local function print_voice(voice, ticks_per_beat)
 
 		local dtime = event.time - last_end_time
 		if dtime > 0 then
-			io.write "r"
+			fp:write "r"
 			if dtime ~= last_duration then
-				io.write("/", dtime / ticks_per_beat)
+				fp:write("/", dtime / ticks_per_beat)
 				last_duration = dtime
 			end
-			io.write " "
+			fp:write " "
 		end
 
-		io.write(name)
+		fp:write(name)
 
 		if octave ~= last_octave then
-			io.write(octave)
+			fp:write(octave)
 			last_octave = octave
 		end
 
 		if event.duration ~= last_duration then
-			io.write("/", event.duration / ticks_per_beat)
+			fp:write("/", event.duration / ticks_per_beat)
 			last_duration = event.duration
 		end
 
 		last_end_time = event.end_time
 
-		io.write " "
+		fp:write " "
 	end
 
-	io.write "\n"
+	fp:write "\n"
 end
 
 local function correct_event(event)
@@ -106,6 +106,12 @@ function main()
 	local bytes = file:read "a"
 	local score = midi.midi2score(bytes)
 
+	local out_path = path:gsub(".mid$", ".synth")
+	local out_file = io.open(out_path, "w")
+	if not out_file then
+		error("Could not open " .. out_path)
+	end
+
 	score.ticks_per_beat = table.remove(score, 1)
 
 	local voice_index = 1
@@ -119,8 +125,8 @@ function main()
 		local voices = split_track_into_voices(track)
 
 		for _,voice in ipairs(voices) do
-			io.write(voice_index, ",sine: ")
-			print_voice(voice, score.ticks_per_beat)
+			out_file:write(voice_index, ",sine: ")
+			print_voice(voice, score.ticks_per_beat, out_file)
 			voice_index = voice_index + 1
 		end
 	end
