@@ -24,17 +24,23 @@ local function parse_line(str, tracks)
 
 	local current_octave = 4
 	local current_duration = 1
+	local sum_durations = 0
 
 	for pitch, alteration, octave, duration in notes:gmatch "([abcdefgr])([#b]?)(%d?)/?([%d%.]*)" do
 
 		current_octave = tonumber(octave) or current_octave
 		current_duration = tonumber(duration) or current_duration
+
+		sum_durations = sum_durations + current_duration
+
 		local note = {
 			func = func,
 			pitch = pitch,
 			alteration = alteration,
 			octave = current_octave,
-			duration = current_duration
+			duration = current_duration,
+			tempo = tracks.tempo,
+			end_time = sum_durations
 		}
 		music.add_frequency(note)
 
@@ -46,7 +52,9 @@ end
 
 local function read_file(path)
 
-	local tracks = {}
+	local tracks = {
+		tempo = 60
+	}
 
 	for line in io.lines(path) do
 		parse_line(line, tracks)

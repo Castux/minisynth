@@ -20,7 +20,6 @@ local alteration_to_semitones =
 local function add_frequency(note)
 
 	if note.pitch == "r" then
-		note.frequency = 0
 		return
 	end
 
