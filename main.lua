@@ -1,6 +1,6 @@
 local generator = require "generator"
 local parser = require "parser"
-local channel = require "channel"
+local generator = require "generator"
 
 if #arg < 1 or #arg > 2 then
 	error("Usage: lua main.lua <filename> [<output file>]")
@@ -17,11 +17,11 @@ if arg[2] then
 	end
 end
 
-local callback = channel.create(tracks)
+local callback = generator.create(tracks)
 
 while true do
 	local mix, active_channels = callback(44100 * 1)
-	channel.write_buffer(mix, fp)
+	generator.write_buffer(mix, fp)
 
 	if active_channels == 0 then
 		break
