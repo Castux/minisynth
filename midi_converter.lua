@@ -37,7 +37,8 @@ local function print_voice(voice, ticks_per_beat, fp)
 	local last_octave, last_duration
 
 	local function write_duration(d)
-		fp:write(string.format("/%.4f", d / ticks_per_beat))
+		local rounded = math.floor(d / ticks_per_beat * 10000) / 10000
+		fp:write(string.format("/%g", rounded))
 	end
 
 	for _,event in ipairs(voice) do
