@@ -19,19 +19,21 @@ local function parse_line(str, tracks)
 
 	track_number = tonumber(track_number)
 	if not tracks[track_number] then
-		tracks[track_number] = {}
+		tracks[track_number] = {
+			last_end_time = 0
+		}
 	end
+	local track = tracks[track_number]
 
 	local current_octave = 4
 	local current_duration = 1
-	local sum_durations = 0
 
 	for pitch, alteration, octave, duration in notes:gmatch "([abcdefgr])([#b]?)(%d?)/?([%d%.]*)" do
 
 		current_octave = tonumber(octave) or current_octave
 		current_duration = tonumber(duration) or current_duration
 
-		sum_durations = sum_durations + current_duration
+		track.last_end_time = track.last_end_time + current_duration
 
 		local note = {
 			func = func,
@@ -40,11 +42,11 @@ local function parse_line(str, tracks)
 			octave = current_octave,
 			duration = current_duration,
 			tempo = tracks.tempo,
-			end_time = sum_durations
+			end_time = track.last_end_time
 		}
 		music.add_frequency(note)
 
-		table.insert(tracks[track_number], note)
+		table.insert(track, note)
 	end
 
 	return tracks
