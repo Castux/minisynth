@@ -36,6 +36,10 @@ local function print_voice(voice, ticks_per_beat, fp)
 	local last_end_time = 0
 	local last_octave, last_duration
 
+	local function write_duration(d)
+		fp:write(string.format("/%.4f", d / ticks_per_beat))
+	end
+
 	for _,event in ipairs(voice) do
 
 		local name, octave = music.midi_to_pitch(event.note)
@@ -46,7 +50,7 @@ local function print_voice(voice, ticks_per_beat, fp)
 		if dtime > 0 then
 			fp:write "r"
 			if dtime ~= last_duration then
-				fp:write("/", dtime / ticks_per_beat)
+				write_duration(dtime)
 				last_duration = dtime
 			end
 			fp:write " "
@@ -60,7 +64,7 @@ local function print_voice(voice, ticks_per_beat, fp)
 		end
 
 		if event.duration ~= last_duration then
-			fp:write("/", event.duration / ticks_per_beat)
+			write_duration(event.duration)
 			last_duration = event.duration
 		end
 
