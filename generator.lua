@@ -2,13 +2,19 @@ local bits_per_sample = 16
 local max_value = 2 ^ (bits_per_sample - 1) - 1
 local sample_rate = 44100
 
+local envelope_rate = 0.005
+
 local function create(notes)
 	return {
 		notes = notes,
 		note_index = 1,
+		volume = 0,
 		beat = 0,	-- beats
 		phi = 0,	-- periods
-		finished = false
+		finished = false,
+
+		func = "silence",
+		frequency = nil
 	}
 end
 
@@ -50,19 +56,26 @@ local function generate(channel, buffer, num_samples)
 			goto continue
 		end
 
-		local func = note.pitch == "r" and "silence" or note.func
-		buffer[i] = oscillators[func](channel.phi)
+		if note.pitch ~= "r" then
+			channel.func = note.func
+			channel.frequency = note.frequency
+		end
 
-		-- Advance time
+		buffer[i] = oscillators[channel.func](channel.phi) * channel.volume
 
-		local dt = 1 / sample_rate
+		-- Advance time (dt = 1 / sample_rate)
+
 		local dbeat = note.tempo / 60 / sample_rate		-- tempo / 60 * dt
 
 		channel.beat = channel.beat + dbeat
 
-		if note.frequency then
-			channel.phi = channel.phi + note.frequency / sample_rate
+		if channel.frequency then
+			channel.phi = channel.phi + channel.frequency / sample_rate
 		end
+
+		-- Advance envelope
+		local target = note.pitch == "r" and 0 or 1
+		channel.volume = channel.volume + (target - channel.volume) * envelope_rate
 
 		-- Next note?
 		while channel.beat > note.end_time do
