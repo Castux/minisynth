@@ -8,7 +8,7 @@ end
 
 local tracks = parser.read_file(arg[1])
 
-local fp = io.output
+local fp = io.stdout
 
 if arg[2] then
 	fp = io.open(arg[2], "w")
