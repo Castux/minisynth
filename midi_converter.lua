@@ -128,6 +128,8 @@ function main()
 
 		local voices = split_track_into_voices(track)
 
+		print("Track" .. i .. ":", #voices .. " voices")
+
 		for _,voice in ipairs(voices) do
 			out_file:write(voice_index, ",sine: ")
 			print_voice(voice, score.ticks_per_beat, out_file)
