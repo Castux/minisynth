@@ -20,7 +20,7 @@ local function parse_line(str, tracks)
 	track_number = tonumber(track_number)
 	if not tracks[track_number] then
 		tracks[track_number] = {
-			last_end_time = 0
+			last_end_beat = 0
 		}
 	end
 	local track = tracks[track_number]
@@ -33,8 +33,8 @@ local function parse_line(str, tracks)
 		current_octave = tonumber(octave) or current_octave
 		current_duration = tonumber(duration) or current_duration
 
-		local start_time = track.last_end_time
-		track.last_end_time = track.last_end_time + current_duration
+		local start_beat = track.last_end_beat
+		track.last_end_beat = track.last_end_beat + current_duration
 
 		local note = {
 			instrument = instrument,
@@ -43,8 +43,8 @@ local function parse_line(str, tracks)
 			octave = current_octave,
 			duration = current_duration,
 			tempo = tracks.tempo,
-			start_time = start_time,
-			end_time = track.last_end_time
+			start_beat = start_beat,
+			end_beat = track.last_end_beat
 		}
 		music.add_frequency(note)
 

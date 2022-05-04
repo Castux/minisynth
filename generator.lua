@@ -113,13 +113,13 @@ local function generate(channel, buffer, num_samples)
 
 		-- Envelope
 
-		local note_played_for = (channel.beat - note.start_time) / note.tempo * 60
+		local note_played_for = (channel.beat - note.start_beat) / note.tempo * 60
 		local env_func = instruments[note.instrument].envelope
 		channel.volume = env_func(channel.volume, note_played_for, note.pitch == "r")
 
 		-- Next note?
 
-		while channel.beat > note.end_time do
+		while channel.beat > note.end_beat do
 			channel.note_index = channel.note_index + 1
 			note = channel.notes[channel.note_index]
 			if not note then
