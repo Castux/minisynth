@@ -2,7 +2,7 @@ local music = require "music"
 
 local function parse_line(str, tracks)
 
-	if str == "" then
+	if str == "" or str:match "^#" then
 		return
 	end
 
