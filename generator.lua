@@ -18,6 +18,13 @@ local function create(notes)
 	}
 end
 
+local low_noise_sample = 0
+local low_noise_cutout = 0.97
+
+local high_noise_sample = 0
+local last_noise = 0
+local high_noise_cutout = 0.5
+
 local oscillators =
 {
 	sine = function(phi)
@@ -37,7 +44,22 @@ local oscillators =
 	end,
 
 	noise = function(phi)
-		return math.random()
+		return math.random() * 2 - 1
+	end,
+
+	lownoise = function(phi)
+		local target = math.random() * 2 - 1
+		local new = low_noise_sample * low_noise_cutout + target * (1 - low_noise_cutout)
+		low_noise_sample = new
+		return new
+	end,
+
+	highnoise = function(phi)
+		local new_noise = math.random() * 2 - 1
+		local new = high_noise_cutout * (high_noise_sample + new_noise - last_noise)
+		last_noise = new_noise
+		high_noise_sample = new
+		return new
 	end,
 
 	silence = function(phi)
