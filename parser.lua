@@ -33,6 +33,7 @@ local function parse_line(str, tracks)
 		current_octave = tonumber(octave) or current_octave
 		current_duration = tonumber(duration) or current_duration
 
+		local start_time = track.last_end_time
 		track.last_end_time = track.last_end_time + current_duration
 
 		local note = {
@@ -42,6 +43,7 @@ local function parse_line(str, tracks)
 			octave = current_octave,
 			duration = current_duration,
 			tempo = tracks.tempo,
+			start_time = start_time,
 			end_time = track.last_end_time
 		}
 		music.add_frequency(note)

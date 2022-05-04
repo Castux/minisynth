@@ -43,23 +43,16 @@ local oscillators =
 		return 1 - 4 * math.abs(0.5 - (phi % 1))
 	end,
 
-	noise = function(phi)
-		return math.random() * 2 - 1
+	kick = function(phi)
+		return math.sin(phi / 5 * 2 * math.pi)
 	end,
 
-	lownoise = function(phi)
-		local target = math.random() * 2 - 1
-		local new = low_noise_sample * low_noise_cutout + target * (1 - low_noise_cutout)
-		low_noise_sample = new
-		return new
-	end,
-
-	highnoise = function(phi)
+	highhat = function(phi)
 		local new_noise = math.random() * 2 - 1
 		local new = high_noise_cutout * (high_noise_sample + new_noise - last_noise)
 		last_noise = new_noise
 		high_noise_sample = new
-		return new
+		return math.random() * 2 - 1
 	end,
 
 	silence = function(phi)
@@ -95,9 +88,22 @@ local function generate(channel, buffer, num_samples)
 			channel.phi = channel.phi + channel.frequency / sample_rate
 		end
 
-		-- Advance envelope
-		local target = note.pitch == "r" and 0 or 1
-		channel.volume = channel.volume + (target - channel.volume) * envelope_rate
+		-- Envelope
+
+		if note.func == "highhat" and note.pitch ~= "r" then
+			local note_played_for = channel.beat - note.start_time
+			channel.volume = math.max(0, 1 - 3 * note_played_for)
+		elseif note.func == "kick"  and note.pitch ~= "r" then
+			local note_played_for = channel.beat - note.start_time
+			if note_played_for < 0.01 then
+				channel.volume = note_played_for / 0.01
+			else
+				channel.volume = math.max(0, 1 - 3 * (note_played_for - 0.01))
+			end
+		else
+			local target = note.pitch == "r" and 0 or 1
+			channel.volume = channel.volume + (target - channel.volume) * envelope_rate
+		end
 
 		-- Next note?
 		while channel.beat > note.end_time do
