@@ -13,7 +13,7 @@ local function create(notes)
 		phi = 0,	-- periods
 		finished = false,
 
-		func = "silence",
+		func = nil,
 		frequency = nil
 	}
 end
@@ -74,7 +74,7 @@ local instruments =
 		envelope = drum_envelope
 	},
 
-	highhat = {
+	hihat = {
 		func = function(phi)
 			return (math.random() * 2 - 1) * 0.75
 		end,
@@ -86,21 +86,22 @@ local function generate(channel, buffer, num_samples)
 
 	for i = 1,num_samples do
 
-		local note = channel.notes[channel.note_index]
-		if not note then
-			channel.finished = true
+		if channel.finished then
 			buffer[i] = 0
 			goto continue
 		end
+
+		local note = channel.notes[channel.note_index]
 
 		if note.pitch ~= "r" then
 			channel.func = note.func
 			channel.frequency = note.frequency
 		end
 
-		buffer[i] = instruments[note.instrument].func(channel.phi, channel.t) * channel.volume
+		local oscillator = instruments[note.instrument].func
+		buffer[i] = oscillator(channel.phi, channel.t) * channel.volume
 
-		-- Advance time (
+		-- Advance time
 
 		local dt = 1 / sample_rate
 		channel.t = channel.t + dt
