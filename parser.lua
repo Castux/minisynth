@@ -12,8 +12,8 @@ local function parse_line(str, tracks)
 		return
 	end
 
-	local track_number, func, notes = str:match("^(%d+),(%w+):(.*)$")
-	if not (track_number and func and notes) then
+	local track_number, instrument, notes = str:match("^(%d+),(%w+):(.*)$")
+	if not (track_number and instrument and notes) then
 		error("Line format expected '<track>,<func>:<notes>'")
 	end
 
@@ -37,7 +37,7 @@ local function parse_line(str, tracks)
 		track.last_end_time = track.last_end_time + current_duration
 
 		local note = {
-			func = func,
+			instrument = instrument,
 			pitch = pitch,
 			alteration = alteration,
 			octave = current_octave,

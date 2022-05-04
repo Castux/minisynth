@@ -2,13 +2,13 @@ local bits_per_sample = 16
 local max_value = 2 ^ (bits_per_sample - 1) - 1
 local sample_rate = 44100
 
-local envelope_rate = 0.005
 
 local function create(notes)
 	return {
 		notes = notes,
 		note_index = 1,
 		volume = 0,
+		t = 0,		-- seconds
 		beat = 0,	-- beats
 		phi = 0,	-- periods
 		finished = false,
@@ -18,46 +18,68 @@ local function create(notes)
 	}
 end
 
-local low_noise_sample = 0
-local low_noise_cutout = 0.97
+local envelope_rate = 0.005
+local function standard_envelope(current_volume, t, is_silence)
+	local target = is_silence and 0 or 1
+	return current_volume + (target - current_volume) * envelope_rate
+end
 
-local high_noise_sample = 0
-local last_noise = 0
-local high_noise_cutout = 0.5
+local drum_attack = 0.001
+local drum_release = 5
 
-local oscillators =
-{
-	sine = function(phi)
-		return math.sin(phi * 2 * math.pi)
-	end,
-
-	square = function(phi)
-		return (phi % 1) > 0.5 and 1 or -1
-	end,
-
-	saw = function(phi)
-		return (phi % 1) * 2 - 1
-	end,
-
-	triangle = function(phi)
-		return 1 - 4 * math.abs(0.5 - (phi % 1))
-	end,
-
-	kick = function(phi)
-		return math.sin(phi / 5 * 2 * math.pi)
-	end,
-
-	highhat = function(phi)
-		local new_noise = math.random() * 2 - 1
-		local new = high_noise_cutout * (high_noise_sample + new_noise - last_noise)
-		last_noise = new_noise
-		high_noise_sample = new
-		return math.random() * 2 - 1
-	end,
-
-	silence = function(phi)
+local function drum_envelope(current_volume, t, is_silence)
+	if is_silence then
 		return 0
+	elseif t < drum_attack then
+		return t / drum_attack
+	else
+		return math.max(0, 1 - drum_release * (t - drum_attack))
 	end
+end
+
+local instruments =
+{
+	sine = {
+		func = function(phi)
+			return math.sin(phi * 2 * math.pi)
+		end,
+		envelope = standard_envelope
+	},
+
+	square = {
+		func = function(phi)
+			return (phi % 1) > 0.5 and 1 or -1
+		end,
+		envelope = standard_envelope
+	},
+
+	saw = {
+		func = function(phi)
+			return (phi % 1) * 2 - 1
+		end,
+		envelope = standard_envelope
+	},
+
+	triangle = {
+		func = function(phi)
+			return 1 - 4 * math.abs(0.5 - (phi % 1))
+		end,
+		envelope = standard_envelope
+	},
+
+	kick = {
+		func = function(phi, t)
+			return math.sin(t * 55 * 2 * math.pi)
+		end,
+		envelope = drum_envelope
+	},
+
+	highhat = {
+		func = function(phi)
+			return (math.random() * 2 - 1) * 0.75
+		end,
+		envelope = drum_envelope
+	}
 }
 
 local function generate(channel, buffer, num_samples)
@@ -76,36 +98,26 @@ local function generate(channel, buffer, num_samples)
 			channel.frequency = note.frequency
 		end
 
-		buffer[i] = oscillators[channel.func](channel.phi) * channel.volume
+		buffer[i] = instruments[note.instrument].func(channel.phi, channel.t) * channel.volume
 
-		-- Advance time (dt = 1 / sample_rate)
+		-- Advance time (
 
-		local dbeat = note.tempo / 60 / sample_rate		-- tempo / 60 * dt
-
-		channel.beat = channel.beat + dbeat
+		local dt = 1 / sample_rate
+		channel.t = channel.t + dt
+		channel.beat = channel.beat + note.tempo / 60 * dt
 
 		if channel.frequency then
-			channel.phi = channel.phi + channel.frequency / sample_rate
+			channel.phi = channel.phi + channel.frequency * dt
 		end
 
 		-- Envelope
 
-		if note.func == "highhat" and note.pitch ~= "r" then
-			local note_played_for = channel.beat - note.start_time
-			channel.volume = math.max(0, 1 - 3 * note_played_for)
-		elseif note.func == "kick"  and note.pitch ~= "r" then
-			local note_played_for = channel.beat - note.start_time
-			if note_played_for < 0.01 then
-				channel.volume = note_played_for / 0.01
-			else
-				channel.volume = math.max(0, 1 - 3 * (note_played_for - 0.01))
-			end
-		else
-			local target = note.pitch == "r" and 0 or 1
-			channel.volume = channel.volume + (target - channel.volume) * envelope_rate
-		end
+		local note_played_for = (channel.beat - note.start_time) / note.tempo * 60
+		local env_func = instruments[note.instrument].envelope
+		channel.volume = env_func(channel.volume, note_played_for, note.pitch == "r")
 
 		-- Next note?
+
 		while channel.beat > note.end_time do
 			channel.note_index = channel.note_index + 1
 			note = channel.notes[channel.note_index]
