@@ -1,14 +1,14 @@
 local midi = require "MIDI"
 local music = require "music"
 
-local function split_track_into_voices(track)
+local function split_channel_into_voices(channel)
 
 	local start
 	local notes = {}
 
 	local voices = {}
 
-	for _,event in ipairs(track) do
+	for _,event in ipairs(channel) do
 		if event.type == "note" then
 
 			-- insert into first silent voice
@@ -73,8 +73,6 @@ local function print_voice(voice, ticks_per_beat, fp)
 
 		fp:write " "
 	end
-
-	fp:write "\n"
 end
 
 local function correct_event(event)
@@ -82,19 +80,65 @@ local function correct_event(event)
 	event.type = event[1]
 	event.time = event[2]
 
-	if event.type == "note_on" or event.type == "note_off" then
-		event.channel = event[3]
-		event.note = event[4]
-		event.velocity = event[5]
-	elseif event.type == "note" then
+	if event.type == "note" then
 		event.duration = event[3]
 		event.channel = event[4]
 		event.note = event[5]
 		event.velocity = event[6]
 		event.end_time = event.time + event.duration
-	elseif event.type == "set_tempo" then
-		event.tempo = event[3]
+
+	elseif event.type == "patch_change" then
+		event.channel = event[3]
+		event.patch = event[4]
+
+	else
+		return false
 	end
+
+	return true
+end
+
+local function split_by_track_channel(score)
+
+	local tmp = {}
+
+	for track_index, track in ipairs(score) do
+		for _,event in ipairs(track) do
+
+			if not correct_event(event) then
+				goto continue
+			end
+
+			local name = string.format("Track %d: channel %d", track_index, event.channel)
+			if not tmp[name] then
+				tmp[name] = {}
+			end
+
+			if event.type == "note" then
+				table.insert(tmp[name], event)
+
+			elseif event.type == "patch_change" then
+				if event.channel == 9 then
+					tmp[name].instrument = "Percussions"
+				else
+					tmp[name].instrument = midi.Number2patch[event.patch]
+				end
+			end
+
+			::continue::
+		end
+	end
+
+	local result = {}
+
+	for name,channel in pairs(tmp) do
+		channel.name = name
+		table.sort(channel, function(a,b) return a.time < b.time end)
+		table.insert(result, channel)
+	end
+
+	table.sort(result, function(a,b) return a.name < b.name end)
+	return result
 end
 
 function main()
@@ -119,21 +163,20 @@ function main()
 
 	score.ticks_per_beat = table.remove(score, 1)
 
+	local channels = split_by_track_channel(score)
+
 	local voice_index = 1
 
-	for i,track in ipairs(score) do
-		for _,event in ipairs(track) do
-			correct_event(event)
-		end
-		table.sort(track, function(a,b) return a.time < b.time end)
-
-		local voices = split_track_into_voices(track)
-
-		print("Track" .. i .. ":", #voices .. " voices")
+	for _,channel in pairs(channels) do
+		local voices = split_channel_into_voices(channel)
+		local str = string.format("%s (%s), %d voices", channel.name, channel.instrument, #voices)
+		print(str)
+		out_file:write("# ", str, "\n\n")
 
 		for _,voice in ipairs(voices) do
 			out_file:write(voice_index, ",sine: ")
 			print_voice(voice, score.ticks_per_beat, out_file)
+			out_file:write("\n\n")
 			voice_index = voice_index + 1
 		end
 	end
