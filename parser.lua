@@ -6,22 +6,39 @@ local function parse_line(str, tracks)
 		return
 	end
 
-	local tempo = str:match "tempo (%d+)"
-	if tempo then
-		tracks.tempo = tonumber(tempo)
-		return
+	if not tracks.tempo then
+		local tempo = str:match "tempo (%d+)"
+		if tempo then
+			tracks.tempo = tonumber(tempo)
+			return
+		else
+			error("Expected tempo")
+		end
 	end
 
-	local track_number, instrument, notes = str:match("^(%d+),(%w+):(.*)$")
-	if not (track_number and instrument and notes) then
-		error("Line format expected '<track>,<func>:<notes>'")
+	if #tracks == 0 then
+		local instruments = str:match "tracks (.*)"
+		if instruments then
+			for instru in instruments:gmatch "%w+" do
+				table.insert(tracks, {
+					instrument = instru,
+					last_end_beat = 0
+				})
+			end
+			return
+		else
+			error("Expected instrument list")
+		end
+	end
+
+	local track_number, notes = str:match("^(%d+):(.*)$")
+	if not (track_number and notes) then
+		error("Line format expected '<track>:<notes>'")
 	end
 
 	track_number = tonumber(track_number)
 	if not tracks[track_number] then
-		tracks[track_number] = {
-			last_end_beat = 0
-		}
+		error("Wrong track number: " .. track_number)
 	end
 	local track = tracks[track_number]
 
@@ -37,7 +54,7 @@ local function parse_line(str, tracks)
 		track.last_end_beat = track.last_end_beat + current_duration
 
 		local note = {
-			instrument = instrument,
+			instrument = track.instrument,
 			pitch = pitch,
 			alteration = alteration,
 			octave = current_octave,
@@ -56,9 +73,7 @@ end
 
 local function read_file(path)
 
-	local tracks = {
-		tempo = 60
-	}
+	local tracks = {}
 
 	for line in io.lines(path) do
 		parse_line(line, tracks)
