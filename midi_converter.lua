@@ -174,7 +174,7 @@ function main()
 		out_file:write("# ", str, "\n\n")
 
 		for _,voice in ipairs(voices) do
-			out_file:write(voice_index, ",sine: ")
+			out_file:write(voice_index, ": ")
 			print_voice(voice, score.ticks_per_beat, out_file)
 			out_file:write("\n\n")
 			voice_index = voice_index + 1
