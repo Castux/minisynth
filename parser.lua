@@ -24,7 +24,6 @@ local function parse_instruments(str, tracks)
 		for instru in instruments:gmatch "%w+" do
 			table.insert(tracks, {
 				instrument = instru,
-				tempo = tracks.tempo,
 				last_end_beat = 0
 			})
 		end

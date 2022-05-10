@@ -5,7 +5,6 @@ local sample_rate = 44100
 
 local function create(notes)
 	return {
-		tempo = notes.tempo,
 		instrument = notes.instrument,
 
 		notes = notes,
@@ -84,7 +83,7 @@ local instruments =
 	}
 }
 
-local function generate(channel, buffer, num_samples)
+local function generate(channel, buffer, num_samples, tempo)
 
 	for i = 1,num_samples do
 
@@ -102,11 +101,11 @@ local function generate(channel, buffer, num_samples)
 		-- Time
 
 		local t = channel.sample / sample_rate
-		local beat = channel.tempo / 60 * t
+		local beat = tempo / 60 * t
 
 		-- Envelope
 
-		local note_played_for = t - note.start_beat / channel.tempo * 60
+		local note_played_for = t - note.start_beat / tempo * 60
 		local env_func = instruments[channel.instrument].envelope
 		channel.volume = env_func(channel.volume, note_played_for, note.pitch == "r")
 
@@ -165,7 +164,7 @@ local function make_generator(tracks)
 		local active_channels = 0
 
 		for i = 1,#tracks do
-			generate(channels[i], tmp, num_samples)
+			generate(channels[i], tmp, num_samples, tracks.tempo)
 			for j = 1,num_samples do
 				mix[j] = mix[j] + tmp[j]
 			end
