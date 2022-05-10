@@ -37,7 +37,7 @@ local function midi_to_pitch(semitones)
 	-- 60 is c4
 	-- 0 is c0
 
-	local octave = semitones // 12
+	local octave = math.floor(semitones / 12)
 	local note = semitones % 12
 
 	return note_name[note], octave

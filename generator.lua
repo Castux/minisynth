@@ -1,7 +1,4 @@
-local bits_per_sample = 16
-local max_value = 2 ^ (bits_per_sample - 1) - 1
 local sample_rate = 44100
-
 
 local function create(notes)
 	return {
@@ -137,14 +134,6 @@ local function generate(channel, buffer, num_samples, tempo)
 	end
 end
 
-local function write_buffer(buffer, fp)
-	for i = 1, #buffer do
-		local tmp = math.floor(buffer[i] * max_value)
-		tmp = string.pack("i2", tmp)
-		fp:write(tmp)
-	end
-end
-
 local function make_generator(tracks)
 
 	local channels = {}
@@ -185,5 +174,4 @@ end
 return
 {
 	create = make_generator,
-	write_buffer = write_buffer
 }
