@@ -5,15 +5,17 @@ local sample_rate = 44100
 
 local function create(notes)
 	return {
+		tempo = notes.tempo,
+		instrument = notes.instrument,
+
 		notes = notes,
 		note_index = 1,
+
 		volume = 0,
-		t = 0,		-- seconds
-		beat = 0,	-- beats
+		sample = 0,
 		phi = 0,	-- periods
 		finished = false,
 
-		func = nil,
 		frequency = nil
 	}
 end
@@ -94,32 +96,36 @@ local function generate(channel, buffer, num_samples)
 		local note = channel.notes[channel.note_index]
 
 		if note.pitch ~= "r" then
-			channel.func = note.func
 			channel.frequency = note.frequency
 		end
 
-		local oscillator = instruments[note.instrument].func
-		buffer[i] = oscillator(channel.phi, channel.t) * channel.volume
+		-- Time
 
-		-- Advance time
-
-		local dt = 1 / sample_rate
-		channel.t = channel.t + dt
-		channel.beat = channel.beat + note.tempo / 60 * dt
-
-		if channel.frequency then
-			channel.phi = channel.phi + channel.frequency * dt
-		end
+		local t = channel.sample / sample_rate
+		local beat = channel.tempo / 60 * t
 
 		-- Envelope
 
-		local note_played_for = (channel.beat - note.start_beat) / note.tempo * 60
-		local env_func = instruments[note.instrument].envelope
+		local note_played_for = t - note.start_beat / channel.tempo * 60
+		local env_func = instruments[channel.instrument].envelope
 		channel.volume = env_func(channel.volume, note_played_for, note.pitch == "r")
+
+		-- Generation
+
+		local oscillator = instruments[channel.instrument].func
+		buffer[i] = oscillator(channel.phi, t) * channel.volume
+
+		-- Advance time
+
+		if channel.frequency then
+			channel.phi = channel.phi + channel.frequency / sample_rate
+		end
+
+		channel.sample = channel.sample + 1
 
 		-- Next note?
 
-		while channel.beat > note.end_beat do
+		while beat > note.end_beat do
 			channel.note_index = channel.note_index + 1
 			note = channel.notes[channel.note_index]
 			if not note then

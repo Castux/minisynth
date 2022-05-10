@@ -22,6 +22,7 @@ local function parse_line(str, tracks)
 			for instru in instruments:gmatch "%w+" do
 				table.insert(tracks, {
 					instrument = instru,
+					tempo = tracks.tempo,
 					last_end_beat = 0
 				})
 			end
@@ -54,12 +55,10 @@ local function parse_line(str, tracks)
 		track.last_end_beat = track.last_end_beat + current_duration
 
 		local note = {
-			instrument = track.instrument,
 			pitch = pitch,
 			alteration = alteration,
 			octave = current_octave,
 			duration = current_duration,
-			tempo = tracks.tempo,
 			start_beat = start_beat,
 			end_beat = track.last_end_beat
 		}
