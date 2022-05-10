@@ -1,36 +1,40 @@
 local music = require "music"
 
-local function parse_line(str, tracks)
-
+local function parse_comment(str)
 	if str == "" or str:match "^#" then
+		return true
+	end
+end
+
+local function parse_tempo(str, tracks)
+
+	local tempo = str:match "^tempo (%d+)$"
+	if tempo then
+		tracks.tempo = tonumber(tempo)
 		return
 	end
 
-	if not tracks.tempo then
-		local tempo = str:match "tempo (%d+)"
-		if tempo then
-			tracks.tempo = tonumber(tempo)
-			return
-		else
-			error("Expected tempo")
+	error("Expected tempo")
+end
+
+local function parse_instruments(str, tracks)
+
+	local instruments = str:match "^tracks (.*)$"
+	if instruments then
+		for instru in instruments:gmatch "%w+" do
+			table.insert(tracks, {
+				instrument = instru,
+				tempo = tracks.tempo,
+				last_end_beat = 0
+			})
 		end
+		return
 	end
 
-	if #tracks == 0 then
-		local instruments = str:match "tracks (.*)"
-		if instruments then
-			for instru in instruments:gmatch "%w+" do
-				table.insert(tracks, {
-					instrument = instru,
-					tempo = tracks.tempo,
-					last_end_beat = 0
-				})
-			end
-			return
-		else
-			error("Expected instrument list")
-		end
-	end
+	error("Expected instrument list")
+end
+
+local function parse_line(str, tracks)
 
 	local track_number, notes = str:match("^(%d+):(.*)$")
 	if not (track_number and notes) then
@@ -75,7 +79,16 @@ local function read_file(path)
 	local tracks = {}
 
 	for line in io.lines(path) do
-		parse_line(line, tracks)
+
+		if parse_comment(line) then
+			-- Do nothing
+		elseif not tracks.tempo then
+			parse_tempo(line, tracks)
+		elseif #tracks == 0 then
+			parse_instruments(line, tracks)
+		else
+			parse_line(line, tracks)
+		end
 	end
 
 	return tracks
