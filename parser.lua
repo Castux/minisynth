@@ -73,11 +73,11 @@ local function parse_line(str, tracks)
 	return tracks
 end
 
-local function read_file(path)
+local function read_file(iter)
 
 	local tracks = {}
 
-	for line in io.lines(path) do
+	for line in iter do
 
 		if parse_comment(line) then
 			-- Do nothing

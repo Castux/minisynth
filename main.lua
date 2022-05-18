@@ -1,39 +1,63 @@
 local parser = require "parser"
 local generator = require "generator"
 
-local bits_per_sample = 16
-local max_value = 2 ^ (bits_per_sample - 1) - 1
+local sampleRate = 44100
+local samplesPerBuffer = 2048 * 2
+local bitDepth = 16
+local numChannels = 1
 
-local function write_buffer(buffer, fp)
-	for i = 1, #buffer do
-		local tmp = math.floor(buffer[i] * max_value)
-		tmp = string.pack("i2", tmp)
-		fp:write(tmp)
+local path
+local source
+local callback
+
+local count = 0
+
+local function tryQueueBuffer()
+	
+	if not callback or source:getFreeBufferCount() == 0 then
+		return
+	end
+	
+	local soundData = love.sound.newSoundData(samplesPerBuffer, sampleRate, bitDepth, numChannels)
+	local mix, activeChannels = callback(samplesPerBuffer)
+	
+	for i,sample in ipairs(mix) do
+		soundData:setSample(i - 1, sample)
+	end
+	
+	local success = source:queue(soundData)
+	
+	count = count + 1
+	print("Added a buffer", count)
+end
+
+function love.load()
+	source = love.audio.newQueueableSource(sampleRate, bitDepth, numChannels)
+end
+
+function love.update(dt)
+	
+	tryQueueBuffer()
+	
+	if callback and not source:isPlaying() then
+		print "Started music"
+		source:play()
 	end
 end
 
-if #arg < 1 or #arg > 2 then
-	error("Usage: lua main.lua <filename> [<output file>]")
+function love.draw()
+	love.graphics.print(path or "No file selected", 400, 300)
 end
 
-local tracks = parser.read_file(arg[1])
-
-local fp = io.stdout
-
-if arg[2] then
-	fp = io.open(arg[2], "w")
-	if not fp then
-		error("Could not open output file " .. arg[2])
-	end
+function love.filedropped(file)
+	
+	file:open("r")
+	path = file:getFilename()
+	
+	local tracks = parser.read_file(file:lines())
+	callback = generator.create(tracks)
 end
 
-local callback = generator.create(tracks)
-
-while true do
-	local mix, active_channels = callback(44100 * 1)
-	write_buffer(mix, fp)
-
-	if active_channels == 0 then
-		break
-	end
+function love.keypressed(key, scancode, isrepeat)
+	
 end
