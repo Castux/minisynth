@@ -37,7 +37,7 @@ local function print_voice(voice, ticks_per_beat, fp)
 	local last_octave, last_duration
 
 	local function write_duration(d)
-		local rounded = math.floor(d / ticks_per_beat * 10000) / 10000
+		local rounded = math.floor(d / ticks_per_beat * 100000) / 100000
 		fp:write(string.format("/%g", rounded))
 	end
 
