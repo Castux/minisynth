@@ -109,7 +109,7 @@ local function split_by_track_channel(score)
 				goto continue
 			end
 
-			local name = string.format("Track %d: channel %d", track_index, event.channel)
+			local name = string.format("Track %2d: channel %2d", track_index, event.channel)
 			if not tmp[name] then
 				tmp[name] = {}
 			end

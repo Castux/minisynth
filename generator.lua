@@ -72,7 +72,7 @@ local instruments =
 		envelope = drum_envelope
 	},
 
-	hihat = {
+	snare = {
 		func = function(phi)
 			return (math.random() * 2 - 1) * 0.75
 		end,
