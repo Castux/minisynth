@@ -10,25 +10,20 @@ local path
 local source
 local callback
 
-local count = 0
-
 local function tryQueueBuffer()
-	
+
 	if not callback or source:getFreeBufferCount() == 0 then
 		return
 	end
-	
+
 	local soundData = love.sound.newSoundData(samplesPerBuffer, sampleRate, bitDepth, numChannels)
 	local mix, activeChannels = callback(samplesPerBuffer)
-	
+
 	for i,sample in ipairs(mix) do
 		soundData:setSample(i - 1, sample)
 	end
-	
-	local success = source:queue(soundData)
-	
-	count = count + 1
-	print("Added a buffer", count)
+
+	source:queue(soundData)
 end
 
 function love.load()
@@ -36,9 +31,9 @@ function love.load()
 end
 
 function love.update(dt)
-	
+
 	tryQueueBuffer()
-	
+
 	if callback and not source:isPlaying() then
 		print "Started music"
 		source:play()
@@ -46,18 +41,18 @@ function love.update(dt)
 end
 
 function love.draw()
-	love.graphics.print(path or "No file selected", 400, 300)
+	love.graphics.print(path or "Drag and drop a .synth file on this window", 30, 30)
 end
 
 function love.filedropped(file)
-	
+
 	file:open("r")
 	path = file:getFilename()
-	
+
 	local tracks = parser.read_file(file:lines())
 	callback = generator.create(tracks)
 end
 
 function love.keypressed(key, scancode, isrepeat)
-	
+
 end
