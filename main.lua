@@ -2,7 +2,7 @@ local parser = require "parser"
 local generator = require "generator"
 
 local sampleRate = 44100
-local samplesPerBuffer = 2048 * 2
+local samplesPerBuffer = 512
 local bitDepth = 16
 local numChannels = 1
 
